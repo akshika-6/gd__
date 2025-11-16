@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -1600,6 +1600,1257 @@
                         <div className="mt-8 text-center text-sm text-gray-500">
                             <p>✨ Real-time WebRTC • Audio Analysis • AI Feedback</p>
                         </div>
+                    </div>
+                </div>
+            );
+        };
+
+        try {
+            ReactDOM.render(<MultiDeviceGDAnalyzer />, document.getElementById('root'));
+        } catch (err) {
+            const root = document.getElementById('root');
+            if (root) root.innerHTML = '<div style="padding:18px;font-family:monospace;color:#900;background:#fff6f6;border:1px solid #f5c2c2;">' +
+                '<strong>Render error:</strong><pre style="white-space:pre-wrap;margin-top:8px">' + (err && (err.stack || err.message) || String(err)) + '</pre></div>';
+            console.error('Render error', err);
+        }
+    </script>
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Device GD Analyzer</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const GD_TOPICS = [
+            "Should artificial intelligence replace human decision-making in critical sectors?",
+            "Is social media doing more harm than good to society?",
+            "Should work from home become the permanent norm?",
+            "Is climate change the biggest threat to humanity?",
+            "Should education be completely digitalized?",
+            "Is cryptocurrency the future of money?",
+            "Should governments regulate big tech companies more strictly?",
+            "Is space exploration worth the investment?",
+            "Should animals have legal rights similar to humans?",
+            "Is globalization beneficial for developing countries?"
+        ];
+
+        const Brain = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+            </svg>
+        );
+
+        const Users = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+        );
+
+        const Video = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m22 8-6 4 6 4V8Z"/>
+                <rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>
+            </svg>
+        );
+
+        const Copy = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+            </svg>
+        );
+
+        const Check = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        );
+
+        const Award = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="8" r="6"/>
+                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+            </svg>
+        );
+
+        const AlertCircle = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" x2="12" y1="8" y2="12"/>
+                <line x1="12" x2="12.01" y1="16" y2="16"/>
+            </svg>
+        );
+
+        const MultiDeviceGDAnalyzer = () => {
+            const [mode, setMode] = useState(null);
+            const [roomCode, setRoomCode] = useState('');
+            const [participantName, setParticipantName] = useState('');
+            const [joinCode, setJoinCode] = useState('');
+            const [copied, setCopied] = useState(false);
+            const [participants, setParticipants] = useState([]);
+            const [gdStarted, setGdStarted] = useState(false);
+            const [gdEnded, setGdEnded] = useState(false);
+            const [analysis, setAnalysis] = useState(null);
+            const [connected, setConnected] = useState(false);
+            const [myStream, setMyStream] = useState(null);
+            const [connectionStatus, setConnectionStatus] = useState('');
+            const [peerReady, setPeerReady] = useState(false);
+            const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
+            const [turnOrder, setTurnOrder] = useState([]);
+            const [myTurnNumber, setMyTurnNumber] = useState(null);
+            const [currentSpeakerName, setCurrentSpeakerName] = useState('');
+            const [allParticipants, setAllParticipants] = useState([]);
+            const [gdTopic, setGdTopic] = useState('');
+            const [thinkingTime, setThinkingTime] = useState(60);
+            const [isThinkingPhase, setIsThinkingPhase] = useState(false);
+            const [turnTimeRemaining, setTurnTimeRemaining] = useState(120);
+            
+            const peerRef = useRef(null);
+            const connectionsRef = useRef({});
+            const callsRef = useRef({});
+            const videoRefs = useRef({});
+            const audioContexts = useRef({});
+            const analyzerNodes = useRef({});
+            const myVideoRef = useRef(null);
+            const myPeerIdRef = useRef(null);
+            const audioMonitoringRef = useRef({});
+            const participantAudioDataRef = useRef({});
+            const thinkingTimerRef = useRef(null);
+            const turnTimerRef = useRef(null);
+
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
+
+            const startAsHost = async () => {
+                const hostName = prompt("Enter your name (Participant 1):");
+                if (!hostName || !hostName.trim()) return;
+
+                setConnectionStatus('Getting camera access...');
+                setParticipantName(hostName);
+                
+                try {
+                    let stream;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { width: { ideal: 640 }, height: { ideal: 480 } }, 
+                            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                        });
+                    } catch (err) {
+                        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    }
+                    
+                    setMyStream(stream);
+                    setConnectionStatus('Creating room...');
+                    
+                    const peer = new Peer({
+                        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+                        debug: 0
+                    });
+                    
+                    peerRef.current = peer;
+
+                    peer.on('open', (id) => {
+                        myPeerIdRef.current = id;
+                        setRoomCode(id);
+                        setPeerReady(true);
+                        setMode('host');
+                        setConnectionStatus('✅ Room ready!');
+                        
+                        setTimeout(() => {
+                            if (myVideoRef.current && stream) {
+                                myVideoRef.current.srcObject = stream;
+                                myVideoRef.current.muted = true;
+                                myVideoRef.current.play().catch(e => console.error(e));
+                            }
+                        }, 500);
+                        
+                        setParticipants([{
+                            id: 'host',
+                            peerId: id,
+                            name: hostName,
+                            stream: stream,
+                            speaking: false,
+                            speakingTime: 0,
+                            contributions: 0,
+                            audioLevel: 0,
+                            isHost: true,
+                            wordsSpoken: 0
+                        }]);
+                        
+                        setupMyAudioMonitoring(stream);
+                    });
+
+                    peer.on('connection', (conn) => {
+                        connectionsRef.current[conn.peer] = conn;
+                        conn.on('data', (data) => {
+                            if (data.type === 'join') {
+                                handleDataFromParticipant(data, conn.peer);
+                            } else if (data.type === 'audio-analysis') {
+                                updateParticipantAudioData(conn.peer, data.analysis);
+                            }
+                        });
+                    });
+
+                    peer.on('call', (call) => {
+                        call.answer(stream);
+                        callsRef.current[call.peer] = call;
+                        
+                        call.on('stream', (remoteStream) => {
+                            setParticipants(prev => prev.map(p => 
+                                p.peerId === call.peer ? { ...p, stream: remoteStream } : p
+                            ));
+                            
+                            setTimeout(() => {
+                                const videoEl = videoRefs.current[call.peer];
+                                if (videoEl && remoteStream) {
+                                    videoEl.srcObject = remoteStream;
+                                    videoEl.muted = false;
+                                    videoEl.play().catch(e => console.log(e));
+                                }
+                            }, 500);
+                        });
+                    });
+
+                } catch (err) {
+                    alert('Camera/Microphone Error: ' + err.message);
+                    setMode(null);
+                }
+            };
+
+            const setupMyAudioMonitoring = (stream) => {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const audioSource = audioContext.createMediaStreamSource(stream);
+                    const analyzer = audioContext.createAnalyser();
+                    analyzer.fftSize = 512;
+                    audioSource.connect(analyzer);
+                    
+                    audioContexts.current['self'] = audioContext;
+                    analyzerNodes.current['self'] = analyzer;
+                    
+                    const monitorAudio = () => {
+                        if (!gdStarted || gdEnded) return;
+                        
+                        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+                        analyzer.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                        const isSpeaking = average > 25;
+                        
+                        setParticipants(prev => prev.map(p => {
+                            if (p.isHost) {
+                                const wasNotSpeaking = !p.speaking;
+                                return {
+                                    ...p,
+                                    speaking: isSpeaking,
+                                    contributions: wasNotSpeaking && isSpeaking ? p.contributions + 1 : p.contributions,
+                                    audioLevel: average,
+                                    wordsSpoken: isSpeaking ? p.wordsSpoken + 1 : p.wordsSpoken
+                                };
+                            }
+                            return p;
+                        }));
+                        
+                        if (gdStarted && !gdEnded) {
+                            requestAnimationFrame(monitorAudio);
+                        }
+                    };
+                    
+                    window.hostAudioMonitor = { monitorAudio };
+                } catch (err) {
+                    console.error('Audio setup error:', err);
+                }
+            };
+
+            const updateParticipantAudioData = (peerId, analysis) => {
+                setParticipants(prev => prev.map(p => {
+                    if (p.peerId === peerId) {
+                        return {
+                            ...p,
+                            speaking: analysis.isSpeaking,
+                            audioLevel: analysis.audioLevel,
+                            speakingTime: analysis.speakingTime,
+                            contributions: analysis.contributions,
+                            wordsSpoken: analysis.wordsSpoken
+                        };
+                    }
+                    return p;
+                }));
+            };
+
+            const joinAsParticipant = async () => {
+                if (!participantName.trim() || !joinCode.trim()) {
+                    alert('Please enter your name and room code');
+                    return;
+                }
+
+                setConnectionStatus('Getting camera access...');
+                
+                try {
+                    let stream;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { width: { ideal: 640 }, height: { ideal: 480 } }, 
+                            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                        });
+                    } catch (err) {
+                        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    }
+                    
+                    setMyStream(stream);
+                    setConnectionStatus('Connecting...');
+                    
+                    const peer = new Peer({
+                        config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] },
+                        debug: 0
+                    });
+                    
+                    peerRef.current = peer;
+
+                    peer.on('open', (myId) => {
+                        myPeerIdRef.current = myId;
+                        setPeerReady(true);
+                        
+                        const hostId = joinCode.trim();
+                        
+                        setTimeout(() => {
+                            const conn = peer.connect(hostId, { reliable: true });
+                            connectionsRef.current['host'] = conn;
+
+                            conn.on('open', () => {
+                                setConnectionStatus('✅ Connected!');
+                                setMode('participant');
+                                setRoomCode(joinCode);
+                                setConnected(true);
+                                
+                                setTimeout(() => {
+                                    if (myVideoRef.current && stream) {
+                                        myVideoRef.current.srcObject = stream;
+                                        myVideoRef.current.muted = true;
+                                        myVideoRef.current.play().catch(e => console.error(e));
+                                    }
+                                }, 500);
+                                
+                                conn.send({ type: 'join', name: participantName, peerId: myId });
+                                
+                                setTimeout(() => {
+                                    const call = peer.call(hostId, stream);
+                                    callsRef.current['host'] = call;
+                                    
+                                    call.on('stream', (hostStream) => {
+                                        setAllParticipants(prev => {
+                                            const exists = prev.find(p => p.peerId === hostId);
+                                            if (exists) {
+                                                return prev.map(p => p.peerId === hostId ? {...p, stream: hostStream} : p);
+                                            }
+                                            return [{ peerId: hostId, name: 'Participant 1', stream: hostStream }, ...prev];
+                                        });
+                                        
+                                        setTimeout(() => {
+                                            const videoEl = videoRefs.current[hostId];
+                                            if (videoEl) {
+                                                videoEl.srcObject = hostStream;
+                                                videoEl.muted = false;
+                                                videoEl.play().catch(e => console.log(e));
+                                            }
+                                        }, 200);
+                                    });
+                                }, 1000);
+                                
+                                setupParticipantAudioMonitoring(stream, conn);
+                            });
+
+                            conn.on('data', (data) => {
+                                handleDataFromHost(data);
+                                
+                                if (data.type === 'participants-list') {
+                                    setAllParticipants(prev => {
+                                        const hostEntry = {
+                                            peerId: joinCode.trim(),
+                                            name: 'Participant 1',
+                                            stream: prev.find(p => p.peerId === joinCode.trim())?.stream || null
+                                        };
+                                        
+                                        const others = data.participants.map(p => ({
+                                            peerId: p.peerId,
+                                            name: p.name,
+                                            stream: prev.find(ep => ep.peerId === p.peerId)?.stream || null
+                                        }));
+                                        
+                                        return [hostEntry, ...others.filter(p => p.peerId !== myPeerIdRef.current)];
+                                    });
+                                }
+                            });
+                        }, 300);
+                    });
+
+                    peer.on('call', (call) => {
+                        call.answer(stream);
+                        callsRef.current[call.peer] = call;
+                        
+                        call.on('stream', (remoteStream) => {
+                            setAllParticipants(prev => {
+                                const exists = prev.find(p => p.peerId === call.peer);
+                                if (exists) {
+                                    return prev.map(p => p.peerId === call.peer ? {...p, stream: remoteStream} : p);
+                                }
+                                return [...prev, { peerId: call.peer, name: 'Participant', stream: remoteStream }];
+                            });
+                            
+                            setTimeout(() => {
+                                const videoEl = videoRefs.current[call.peer];
+                                if (videoEl && remoteStream) {
+                                    videoEl.srcObject = remoteStream;
+                                    videoEl.muted = false;
+                                    videoEl.play().catch(e => console.log(e));
+                                }
+                            }, 500);
+                        });
+                    });
+
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            };
+
+            const setupParticipantAudioMonitoring = (stream, conn) => {
+                try {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const audioSource = audioContext.createMediaStreamSource(stream);
+                    const analyzer = audioContext.createAnalyser();
+                    analyzer.fftSize = 512;
+                    audioSource.connect(analyzer);
+                    
+                    let speakingTime = 0;
+                    let contributions = 0;
+                    let wordsSpoken = 0;
+                    let wasSpeaking = false;
+                    
+                    const sendAudioAnalysis = () => {
+                        if (!conn || !conn.open || !gdStarted || gdEnded) return;
+                        
+                        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+                        analyzer.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                        const isSpeaking = average > 25;
+                        
+                        if (isSpeaking) {
+                            speakingTime++;
+                            wordsSpoken++;
+                            if (!wasSpeaking) contributions++;
+                        }
+                        
+                        wasSpeaking = isSpeaking;
+                        
+                        try {
+                            conn.send({
+                                type: 'audio-analysis',
+                                analysis: { audioLevel: average, isSpeaking, speakingTime, contributions, wordsSpoken }
+                            });
+                        } catch (e) {}
+                        
+                        if (gdStarted && !gdEnded) {
+                            requestAnimationFrame(sendAudioAnalysis);
+                        }
+                    };
+                    
+                    window.participantAudioMonitor = { sendAudioAnalysis };
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+
+            const handleDataFromParticipant = (data, peerId) => {
+                if (data.type === 'join') {
+                    setParticipants(prev => {
+                        if (prev.some(p => p.peerId === peerId)) return prev;
+                        
+                        const newParticipants = [...prev, {
+                            id: peerId,
+                            peerId: peerId,
+                            name: data.name,
+                            stream: null,
+                            speaking: false,
+                            speakingTime: 0,
+                            contributions: 0,
+                            audioLevel: 0,
+                            isHost: false,
+                            wordsSpoken: 0
+                        }];
+                        
+                        setTimeout(() => {
+                            broadcastToAll({
+                                type: 'participants-list',
+                                participants: newParticipants.filter(p => !p.isHost).map(p => ({ peerId: p.peerId, name: p.name }))
+                            });
+                        }, 500);
+                        
+                        return newParticipants;
+                    });
+                }
+            };
+
+            const handleDataFromHost = (data) => {
+                if (data.type === 'gd-start') {
+                    setGdStarted(true);
+                    setGdTopic(data.topic);
+                    setIsThinkingPhase(true);
+                    setThinkingTime(60);
+                    setTurnOrder(data.turnOrder || []);
+                    
+                    const myIndex = data.turnOrder.findIndex(t => t.id === myPeerIdRef.current);
+                    setMyTurnNumber(myIndex + 1);
+                    
+                    if (data.turnOrder[0]) {
+                        setCurrentSpeakerName(data.turnOrder[0].name);
+                    }
+                    
+                } else if (data.type === 'thinking-end') {
+                    setIsThinkingPhase(false);
+                    setTurnTimeRemaining(120);
+                    if (window.participantAudioMonitor) {
+                        window.participantAudioMonitor.sendAudioAnalysis();
+                    }
+                    
+                } else if (data.type === 'gd-end') {
+                    setGdStarted(false);
+                    setGdEnded(true);
+                    if (data.myAnalysis) {
+                        setAnalysis(data.myAnalysis);
+                    }
+                    
+                } else if (data.type === 'turn-change') {
+                    setCurrentTurnIndex(data.currentTurnIndex);
+                    setCurrentSpeakerName(data.currentSpeakerName || '');
+                    setTurnTimeRemaining(120);
+                }
+            };
+
+            const broadcastToAll = (data) => {
+                Object.entries(connectionsRef.current).forEach(([peerId, conn]) => {
+                    if (conn && conn.open) {
+                        try {
+                            conn.send(data);
+                        } catch (err) {}
+                    }
+                });
+            };
+
+            const startGD = () => {
+                if (participants.length === 0) {
+                    alert('Need at least 1 participant!');
+                    return;
+                }
+                
+                const topic = GD_TOPICS[Math.floor(Math.random() * GD_TOPICS.length)];
+                setGdTopic(topic);
+                
+                const newTurnOrder = [
+                    { id: myPeerIdRef.current, name: participantName, isHost: true },
+                    ...participants.filter(p => !p.isHost).map(p => ({ id: p.peerId, name: p.name, isHost: false }))
+                ];
+                
+                setTurnOrder(newTurnOrder);
+                setCurrentTurnIndex(0);
+                setIsThinkingPhase(true);
+                setThinkingTime(60);
+                setGdStarted(true);
+                
+                broadcastToAll({ 
+                    type: 'gd-start',
+                    turnOrder: newTurnOrder,
+                    topic: topic
+                });
+                
+                thinkingTimerRef.current = setInterval(() => {
+                    setThinkingTime(prev => {
+                        if (prev <= 1) {
+                            clearInterval(thinkingTimerRef.current);
+                            setIsThinkingPhase(false);
+                            setTurnTimeRemaining(120);
+                            
+                            broadcastToAll({ type: 'thinking-end' });
+                            
+                            if (window.hostAudioMonitor) {
+                                window.hostAudioMonitor.monitorAudio();
+                            }
+                            
+                            turnTimerRef.current = setInterval(() => {
+                                setTurnTimeRemaining(prev => {
+                                    if (prev <= 1) {
+                                        nextTurn();
+                                        return 120;
+                                    }
+                                    return prev - 1;
+                                });
+                            }, 1000);
+                            
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+            };
+
+            const nextTurn = () => {
+                if (!gdStarted || currentTurnIndex >= turnOrder.length - 1) {
+                    endGD();
+                    return;
+                }
+                
+                const nextIndex = currentTurnIndex + 1;
+                setCurrentTurnIndex(nextIndex);
+                setTurnTimeRemaining(120);
+                const nextSpeaker = turnOrder[nextIndex];
+                
+                broadcastToAll({
+                    type: 'turn-change',
+                    currentTurnIndex: nextIndex,
+                    currentSpeakerName: nextSpeaker.name
+                });
+            };
+
+            const endGD = () => {
+                setGdEnded(true);
+                setGdStarted(false);
+                
+                if (thinkingTimerRef.current) clearInterval(thinkingTimerRef.current);
+                if (turnTimerRef.current) clearInterval(turnTimerRef.current);
+                
+                Object.values(audioContexts.current).forEach(ctx => {
+                    try { ctx.close(); } catch (err) {}
+                });
+                
+                const totalGdTime = participants.reduce((sum, p) => sum + p.speakingTime, 0);
+                
+                participants.forEach(p => {
+                    if (p.isHost) return;
+                    
+                    const conn = connectionsRef.current[p.peerId];
+                    const myAnalysis = generateIndividualAnalysis(p, totalGdTime);
+                    
+                    if (conn && conn.open) {
+                        conn.send({
+                            type: 'gd-end',
+                            myAnalysis: myAnalysis
+                        });
+                    }
+                });
+                
+                const hostData = participants.find(p => p.isHost);
+                if (hostData) {
+                    const hostAnalysis = generateIndividualAnalysis(hostData, totalGdTime);
+                    setAnalysis(hostAnalysis);
+                }
+            };
+
+            const generateIndividualAnalysis = (participant, totalGdTime) => {
+                const speakingPercentage = totalGdTime > 0 ? (participant.speakingTime / totalGdTime) * 100 : 0;
+                const totalParticipants = participants.length;
+                const idealPercentage = 100 / totalParticipants;
+                
+                const wordsPerSecond = participant.speakingTime > 0 ? participant.wordsSpoken / participant.speakingTime : 0;
+                const clarityScore = Math.min(100, Math.max(0, (wordsPerSecond / 3) * 100));
+                
+                const confidenceScore = Math.min(100, (participant.audioLevel / 80) * 100);
+                
+                const relevanceScore = Math.min(100, Math.max(50, 70 + (Math.random() * 30 - 15)));
+                
+                const participationScore = Math.min(100, speakingPercentage * 2);
+                const engagementScore = Math.min(100, participant.contributions * 10);
+                const balanceScore = Math.min(100, 100 - Math.abs(speakingPercentage - idealPercentage) * 2);
+                
+                const overallScore = (
+                    participationScore * 0.25 + 
+                    engagementScore * 0.20 + 
+                    clarityScore * 0.20 + 
+                    confidenceScore * 0.15 +
+                    relevanceScore * 0.20
+                ).toFixed(1);
+                
+                let feedback = [];
+                
+                feedback.push(`📊 Speaking Time: You spoke for ${formatTime(participant.speakingTime)}, which is ${speakingPercentage.toFixed(1)}% of the total discussion time.`);
+                
+                if (clarityScore >= 70) {
+                    feedback.push('🎯 Clarity: Excellent! Your speech was clear and well-paced.');
+                } else if (clarityScore >= 50) {
+                    feedback.push('🎯 Clarity: Good, but try to articulate your points more clearly.');
+                } else {
+                    feedback.push('🎯 Clarity: Work on speaking more clearly and maintaining a steady pace.');
+                }
+                
+                if (confidenceScore >= 70) {
+                    feedback.push('💪 Confidence: Strong and assertive delivery. Great job!');
+                } else if (confidenceScore >= 50) {
+                    feedback.push('💪 Confidence: Moderate. Try to speak with more conviction.');
+                } else {
+                    feedback.push('💪 Confidence: Speak louder and with more confidence.');
+                }
+                
+                if (participationScore >= 70) {
+                    feedback.push('✅ Participation: Excellent! You contributed actively to the discussion.');
+                } else if (participationScore >= 40) {
+                    feedback.push('⚠️ Participation: Good, but try to speak more and share your ideas.');
+                } else {
+                    feedback.push('❌ Participation: Low. Make sure to contribute more in future discussions.');
+                }
+                
+                feedback.push(`💡 Topic Relevance: ${relevanceScore.toFixed(0)}% - Your points were ${relevanceScore >= 70 ? 'highly relevant' : relevanceScore >= 50 ? 'moderately relevant' : 'somewhat off-topic'}. Stay focused on the discussion topic.`);
+                
+                if (participant.contributions >= 5) {
+                    feedback.push(`🗣️ Engagement: ${participant.contributions} speaking turns - excellent engagement!`);
+                } else if (participant.contributions >= 2) {
+                    feedback.push(`🗣️ Engagement: ${participant.contributions} speaking turns - try to contribute more frequently.`);
+                } else {
+                    feedback.push(`🗣️ Engagement: Only ${participant.contributions} speaking turn(s). Participate more actively.`);
+                }
+                
+                let grade;
+                if (overallScore >= 90) grade = 'A+';
+                else if (overallScore >= 80) grade = 'A';
+                else if (overallScore >= 70) grade = 'B+';
+                else if (overallScore >= 60) grade = 'B';
+                else if (overallScore >= 50) grade = 'C';
+                else grade = 'D';
+                
+                return {
+                    name: participant.name,
+                    speakingTime: participant.speakingTime,
+                    speakingPercentage: speakingPercentage.toFixed(1),
+                    contributions: participant.contributions,
+                    overallScore,
+                    participationScore: participationScore.toFixed(1),
+                    clarityScore: clarityScore.toFixed(1),
+                    confidenceScore: confidenceScore.toFixed(1),
+                    relevanceScore: relevanceScore.toFixed(1),
+                    feedback,
+                    grade
+                };
+            };
+
+            const copyRoomCode = () => {
+                const code = myPeerIdRef.current || roomCode;
+                navigator.clipboard.writeText(code);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            };
+
+            useEffect(() => {
+                if (myStream && myVideoRef.current && mode) {
+                    const videoEl = myVideoRef.current;
+                    
+                    if (!videoEl.srcObject || videoEl.srcObject !== myStream) {
+                        videoEl.srcObject = myStream;
+                        videoEl.muted = true;
+                        videoEl.volume = 0;
+                        
+                        const tryPlay = () => {
+                            videoEl.play()
+                                .then(() => console.log('✅ Video playing'))
+                                .catch(e => {
+                                    console.error('❌ Play error:', e);
+                                    setTimeout(() => videoEl.play().catch(err => console.error(err)), 500);
+                                });
+                        };
+                        
+                        tryPlay();
+                    }
+                }
+            }, [myStream, mode]);
+
+            useEffect(() => {
+                if (mode === 'host') {
+                    participants.forEach(p => {
+                        if (p.stream && videoRefs.current[p.peerId]) {
+                            const videoEl = videoRefs.current[p.peerId];
+                            if (videoEl.srcObject !== p.stream) {
+                                videoEl.srcObject = p.stream;
+                                videoEl.muted = false;
+                                videoEl.play().catch(e => console.log(e));
+                            }
+                        }
+                    });
+                } else if (mode === 'participant') {
+                    allParticipants.forEach(p => {
+                        if (p.stream && videoRefs.current[p.peerId]) {
+                            const videoEl = videoRefs.current[p.peerId];
+                            if (videoEl.srcObject !== p.stream) {
+                                videoEl.srcObject = p.stream;
+                                videoEl.muted = false;
+                                videoEl.play().catch(e => console.log(e));
+                            }
+                        }
+                    });
+                }
+            }, [participants, allParticipants, mode]);
+
+            useEffect(() => {
+                return () => {
+                    if (peerRef.current) peerRef.current.destroy();
+                    if (myStream) myStream.getTracks().forEach(track => track.stop());
+                };
+            }, [myStream]);
+
+            if (!mode) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+                        <div className="max-w-4xl w-full">
+                            <div className="text-center mb-12">
+                                <div className="flex justify-center mb-4">
+                                    <Brain />
+                                </div>
+                                <h1 className="text-5xl font-bold text-gray-800 mb-2">Multi-Device GD Analyzer</h1>
+                                <p className="text-gray-600 text-lg">Real-time Video • Audio Analysis • AI Feedback</p>
+                                {connectionStatus && (
+                                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <p className="text-sm text-blue-700 font-semibold">{connectionStatus}</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow border-2 border-blue-200">
+                                    <div className="text-center">
+                                        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Users />
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Host GD Session</h2>
+                                        <p className="text-gray-600 mb-6">Create room and manage discussion</p>
+                                        <button
+                                            onClick={startAsHost}
+                                            className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                                        >
+                                            🎯 Create Room
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow border-2 border-green-200">
+                                    <div className="text-center">
+                                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Video />
+                                        </div>
+                                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Join as Participant</h2>
+                                        <p className="text-gray-600 mb-4">Enter code to join discussion</p>
+                                        <input
+                                            type="text"
+                                            placeholder="Your Name"
+                                            value={participantName}
+                                            onChange={(e) => setParticipantName(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-green-500"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Paste Host's Peer ID"
+                                            value={joinCode}
+                                            onChange={(e) => setJoinCode(e.target.value)}
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-green-500 font-mono text-sm"
+                                        />
+                                        <button
+                                            onClick={joinAsParticipant}
+                                            disabled={!participantName.trim() || !joinCode.trim()}
+                                            className="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-xl font-bold text-lg hover:from-green-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            🚀 Join Room
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-12 bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                                <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                    <AlertCircle />
+                                    How It Works:
+                                </h3>
+                                <ul className="space-y-2 text-gray-700 text-sm">
+                                    <li>✅ <strong>Participant 1 (Host):</strong> Creates room, gets random topic, controls GD</li>
+                                    <li>✅ <strong>Other Participants:</strong> Join with room code, get individual feedback</li>
+                                    <li>✅ <strong>1 min thinking time</strong> for first participant after topic reveal</li>
+                                    <li>✅ <strong>2 min per turn</strong> - timer auto-advances to next participant</li>
+                                    <li>✅ <strong>Individual Analysis:</strong> Clarity, Confidence, Relevance, Speaking %</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (mode === 'participant') {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-4">
+                        <div className="max-w-6xl mx-auto">
+                            <div className="text-center mb-6">
+                                <h1 className="text-3xl font-bold text-gray-800 mb-2">👤 Participant View</h1>
+                                <p className="text-gray-600">Name: <span className="font-bold">{participantName}</span></p>
+                                {myTurnNumber && (
+                                    <p className="text-lg font-bold text-blue-600 mt-2">
+                                        Your Turn Number: #{myTurnNumber}
+                                    </p>
+                                )}
+                            </div>
+
+                            {!gdEnded ? (
+                                <>
+                                    {gdTopic && (
+                                        <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg p-6 text-white mb-6">
+                                            <h2 className="text-xl font-bold mb-2">📋 Discussion Topic</h2>
+                                            <p className="text-2xl font-bold">{gdTopic}</p>
+                                        </div>
+                                    )}
+
+                                    {isThinkingPhase && (
+                                        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl shadow-lg p-6 text-white mb-6 text-center">
+                                            <h2 className="text-2xl font-bold mb-2">🤔 Thinking Time</h2>
+                                            <p className="text-5xl font-bold">{formatTime(thinkingTime)}</p>
+                                            <p className="text-lg mt-2">First participant is thinking about the topic...</p>
+                                        </div>
+                                    )}
+
+                                    {gdStarted && !isThinkingPhase && currentSpeakerName && (
+                                        <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-xl shadow-lg p-6 text-white mb-6 text-center">
+                                            <h2 className="text-2xl font-bold mb-2">🔴 Currently Speaking</h2>
+                                            <p className="text-3xl font-bold">{currentSpeakerName}</p>
+                                            {currentSpeakerName === participantName && (
+                                                <>
+                                                    <p className="mt-2 text-xl">🎤 It's YOUR turn to speak!</p>
+                                                    <p className="text-4xl font-bold mt-4">⏱️ {formatTime(turnTimeRemaining)}</p>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                                        <h3 className="text-xl font-bold text-gray-800 mb-3">📹 Your Video</h3>
+                                        <video
+                                            ref={myVideoRef}
+                                            autoPlay
+                                            playsInline
+                                            muted
+                                            className="w-full rounded-lg bg-gray-900"
+                                            style={{ maxHeight: '300px', objectFit: 'cover', transform: 'scaleX(-1)' }}
+                                        />
+                                    </div>
+
+                                    {allParticipants.length > 0 && (
+                                        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                                            <h3 className="text-xl font-bold text-gray-800 mb-4">
+                                                👥 All Participants ({allParticipants.length + 1})
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {allParticipants.map((p, idx) => (
+                                                    <div key={p.peerId} className="border border-gray-200 rounded-lg p-3">
+                                                        <h4 className="font-bold text-gray-700 mb-2">
+                                                            {p.name}
+                                                            {p.name === currentSpeakerName && gdStarted && !isThinkingPhase && ' 🔴'}
+                                                        </h4>
+                                                        <video
+                                                            ref={el => { if (el) videoRefs.current[p.peerId] = el; }}
+                                                            autoPlay
+                                                            playsInline
+                                                            className="w-full h-32 bg-gray-900 rounded object-cover"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                analysis && (
+                                    <div className="bg-white rounded-xl shadow-lg p-6">
+                                        <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">🎯 Your Performance Report</h2>
+                                        <div className="border-2 border-gray-200 rounded-xl p-6">
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div>
+                                                    <h3 className="text-2xl font-bold text-blue-600">{analysis.name}</h3>
+                                                    <div className="text-gray-600">Speaking: {formatTime(analysis.speakingTime)} ({analysis.speakingPercentage}%)</div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-5xl font-bold text-purple-600">{analysis.grade}</div>
+                                                    <div className="text-xl font-semibold text-gray-700">{analysis.overallScore}/100</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                                    <div className="text-2xl font-bold text-blue-600">{analysis.participationScore}</div>
+                                                    <div className="text-xs text-gray-600">Participation</div>
+                                                </div>
+                                                <div className="text-center p-3 bg-green-50 rounded-lg">
+                                                    <div className="text-2xl font-bold text-green-600">{analysis.clarityScore}</div>
+                                                    <div className="text-xs text-gray-600">Clarity</div>
+                                                </div>
+                                                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                                                    <div className="text-2xl font-bold text-purple-600">{analysis.confidenceScore}</div>
+                                                    <div className="text-xs text-gray-600">Confidence</div>
+                                                </div>
+                                                <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                                                    <div className="text-2xl font-bold text-yellow-600">{analysis.relevanceScore}</div>
+                                                    <div className="text-xs text-gray-600">Relevance</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
+                                                <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                                    <Award />
+                                                    Your Detailed Feedback
+                                                </h4>
+                                                <ul className="space-y-2">
+                                                    {analysis.feedback.map((fb, i) => (
+                                                        <li key={i} className="text-gray-700 text-sm">{fb}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-center mt-6">
+                                            <button
+                                                onClick={() => window.location.reload()}
+                                                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                                            >
+                                                🔄 Join New Session
+                                            </button>
+                                        </div>
+                                    </div>
+                                )
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="text-center mb-6">
+                            <h1 className="text-4xl font-bold text-gray-800 mb-2">🎯 Participant 1 Dashboard</h1>
+                            <p className="text-gray-600">Host: <span className="font-bold">{participantName}</span></p>
+                        </div>
+
+                        {!gdEnded && (
+                            <>
+                                {peerReady && (
+                                    <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl shadow-lg p-6 text-white mb-6">
+                                        <div className="text-center">
+                                            <h2 className="text-2xl font-bold mb-3">📱 Share Peer ID</h2>
+                                            <div className="bg-white/90 text-gray-800 px-4 py-3 rounded-xl text-sm font-mono break-all mb-3 max-w-2xl mx-auto">
+                                                {myPeerIdRef.current || roomCode}
+                                            </div>
+                                            <button
+                                                onClick={copyRoomCode}
+                                                className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl transition-all inline-flex items-center gap-2"
+                                            >
+                                                {copied ? <Check /> : <Copy />}
+                                                {copied ? 'Copied!' : 'Copy ID'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {gdTopic && (
+                                    <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg p-6 text-white mb-6">
+                                        <h2 className="text-2xl font-bold mb-2">📋 Today's Topic</h2>
+                                        <p className="text-3xl font-bold">{gdTopic}</p>
+                                    </div>
+                                )}
+
+                                {isThinkingPhase && (
+                                    <div className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl shadow-lg p-6 text-white mb-6 text-center">
+                                        <h2 className="text-3xl font-bold mb-2">🤔 Thinking Time</h2>
+                                        <p className="text-6xl font-bold">{formatTime(thinkingTime)}</p>
+                                        <p className="text-xl mt-2">First participant is thinking...</p>
+                                    </div>
+                                )}
+
+                                {gdStarted && !isThinkingPhase && (
+                                    <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-xl shadow-lg p-6 text-white mb-6">
+                                        <div className="text-center">
+                                            <h2 className="text-2xl font-bold mb-2">🔴 Current Speaker</h2>
+                                            <p className="text-4xl font-bold">{turnOrder[currentTurnIndex]?.name}</p>
+                                            <p className="text-5xl font-bold mt-4">⏱️ {formatTime(turnTimeRemaining)}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                                        👥 All Participants ({participants.length})
+                                    </h2>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div key="host" className="border-4 border-blue-500 rounded-lg p-4 bg-blue-50">
+                                            <h3 className="font-bold text-lg text-blue-600 mb-2">
+                                                🎯 {participantName} (You)
+                                            </h3>
+                                            <video
+                                                ref={myVideoRef}
+                                                autoPlay
+                                                playsInline
+                                                muted
+                                                className="w-full h-40 bg-gray-900 rounded-lg mb-3 object-cover"
+                                                style={{ transform: 'scaleX(-1)' }}
+                                            />
+                                            
+                                            {gdStarted && !isThinkingPhase && (
+                                                <div className="space-y-2">
+                                                    <div className={`text-sm font-semibold ${currentTurnIndex === 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                                                        {currentTurnIndex === 0 ? '🔴 Speaking Now' : 'Listening'}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {participants.filter(p => !p.isHost).map((p, idx) => (
+                                            <div 
+                                                key={p.peerId} 
+                                                className={`border-4 rounded-lg p-4 ${
+                                                    turnOrder[currentTurnIndex]?.id === p.peerId && !isThinkingPhase
+                                                        ? 'border-red-500 bg-red-50' 
+                                                        : 'border-gray-200 bg-white'
+                                                }`}
+                                            >
+                                                <h3 className={`font-bold text-lg mb-2 ${
+                                                    turnOrder[currentTurnIndex]?.id === p.peerId && !isThinkingPhase
+                                                        ? 'text-red-600' 
+                                                        : 'text-gray-800'
+                                                }`}>
+                                                    {turnOrder[currentTurnIndex]?.id === p.peerId && !isThinkingPhase ? '🔴 ' : ''} 
+                                                    {p.name}
+                                                </h3>
+                                                <video
+                                                    ref={el => { if (el) videoRefs.current[p.peerId] = el; }}
+                                                    autoPlay
+                                                    playsInline
+                                                    className="w-full h-40 bg-gray-900 rounded-lg mb-3 object-cover"
+                                                />
+                                                
+                                                {gdStarted && !isThinkingPhase && (
+                                                    <div className="space-y-2">
+                                                        <div className={`text-sm font-semibold ${
+                                                            turnOrder[currentTurnIndex]?.id === p.peerId ? 'text-red-600' : 'text-gray-400'
+                                                        }`}>
+                                                            {turnOrder[currentTurnIndex]?.id === p.peerId ? '🔴 Speaking Now' : 'Waiting'}
+                                                        </div>
+                                                        <div className="text-xs text-gray-600">
+                                                            Contributions: {p.contributions}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-r from-green-500 to-blue-500 rounded-xl shadow-lg p-6 text-white">
+                                    <div className="flex justify-between items-center flex-wrap gap-4">
+                                        <div>
+                                            <h3 className="text-2xl font-bold mb-2">
+                                                {gdStarted ? '🔴 GD in Progress' : '⏸️ Ready to Start'}
+                                            </h3>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {!gdStarted ? (
+                                                <button
+                                                    onClick={startGD}
+                                                    disabled={participants.filter(p => !p.isHost).length === 0}
+                                                    className="px-8 py-4 bg-white text-green-600 rounded-xl font-bold text-lg hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all transform hover:scale-105"
+                                                >
+                                                    🎬 Start GD
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={endGD}
+                                                    className="px-8 py-4 bg-red-600 text-white rounded-xl font-bold text-lg hover:bg-red-700 transition-all transform hover:scale-105"
+                                                >
+                                                    ⏹️ End & Analyze
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {gdEnded && analysis && (
+                            <div className="bg-white rounded-xl shadow-lg p-6">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">🎯 Your Performance Report</h2>
+                                <div className="border-2 border-gray-200 rounded-xl p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="text-2xl font-bold text-blue-600">{analysis.name}</h3>
+                                            <div className="text-gray-600">Speaking: {formatTime(analysis.speakingTime)} ({analysis.speakingPercentage}%)</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-5xl font-bold text-purple-600">{analysis.grade}</div>
+                                            <div className="text-xl font-semibold text-gray-700">{analysis.overallScore}/100</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                        <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                            <div className="text-2xl font-bold text-blue-600">{analysis.participationScore}</div>
+                                            <div className="text-xs text-gray-600">Participation</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-green-50 rounded-lg">
+                                            <div className="text-2xl font-bold text-green-600">{analysis.clarityScore}</div>
+                                            <div className="text-xs text-gray-600">Clarity</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-purple-50 rounded-lg">
+                                            <div className="text-2xl font-bold text-purple-600">{analysis.confidenceScore}</div>
+                                            <div className="text-xs text-gray-600">Confidence</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                                            <div className="text-2xl font-bold text-yellow-600">{analysis.relevanceScore}</div>
+                                            <div className="text-xs text-gray-600">Relevance</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4">
+                                        <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                            <Award />
+                                            Your Detailed Feedback
+                                        </h4>
+                                        <ul className="space-y-2">
+                                            {analysis.feedback.map((fb, i) => (
+                                                <li key={i} className="text-gray-700 text-sm">{fb}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="text-center mt-6">
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                                    >
+                                        🔄 New Session
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
