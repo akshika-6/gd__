@@ -148,12 +148,12 @@
                     console.log('Host stream acquired');
                     setMyStream(stream);
                     
-                    setTimeout(() => {
-                        if (myVideoRef.current) {
-                            myVideoRef.current.srcObject = stream;
-                            myVideoRef.current.play().catch(e => console.log('Play error:', e));
-                        }
-                    }, 100);
+                    // Set video immediately
+                    if (myVideoRef.current) {
+                        myVideoRef.current.srcObject = stream;
+                        myVideoRef.current.muted = true;
+                        myVideoRef.current.play().catch(e => console.log('Play error:', e));
+                    }
                     
                     setConnectionStatus('Creating room...');
                     
@@ -251,12 +251,12 @@
                     console.log('Participant stream acquired');
                     setMyStream(stream);
                     
-                    setTimeout(() => {
-                        if (myVideoRef.current) {
-                            myVideoRef.current.srcObject = stream;
-                            myVideoRef.current.play().catch(e => console.log('Play error:', e));
-                        }
-                    }, 100);
+                    // Set video immediately
+                    if (myVideoRef.current) {
+                        myVideoRef.current.srcObject = stream;
+                        myVideoRef.current.muted = true;
+                        myVideoRef.current.play().catch(e => console.log('Play error:', e));
+                    }
 
                     setConnectionStatus('Connecting to host...');
                     
@@ -300,6 +300,25 @@
                                     const call = peer.call(hostId, stream);
                                     callsRef.current['host'] = call;
                                     
+                                    // Receive host's stream
+                                    call.on('stream', (hostStream) => {
+                                        console.log('Received host stream');
+                                        setAllParticipants(prev => {
+                                            const hostExists = prev.find(p => p.peerId === hostId);
+                                            if (hostExists) {
+                                                return prev.map(p => 
+                                                    p.peerId === hostId ? {...p, stream: hostStream} : p
+                                                );
+                                            } else {
+                                                return [{
+                                                    peerId: hostId,
+                                                    name: 'Host',
+                                                    stream: hostStream
+                                                }, ...prev];
+                                            }
+                                        });
+                                    });
+                                    
                                     // Setup audio monitoring to send to host
                                     setupMyAudioMonitoring(stream, conn);
                                 });
@@ -309,9 +328,17 @@
                                     
                                     // Update participants list with proper names
                                     if (data.type === 'participants-list') {
+                                        console.log('Received participants list:', data.participants);
                                         setAllParticipants(prev => {
-                                            // Merge with existing streams
-                                            return data.participants.map(p => {
+                                            // Add host to the list first
+                                            const hostEntry = {
+                                                peerId: joinCode.trim(),
+                                                name: 'Host',
+                                                stream: callsRef.current['host']?.remoteStream || null
+                                            };
+                                            
+                                            // Then merge other participants
+                                            const others = data.participants.map(p => {
                                                 const existing = prev.find(ep => ep.peerId === p.peerId);
                                                 return {
                                                     peerId: p.peerId,
@@ -319,6 +346,8 @@
                                                     stream: existing ? existing.stream : null
                                                 };
                                             });
+                                            
+                                            return [hostEntry, ...others.filter(p => p.peerId !== myPeerIdRef.current)];
                                         });
                                     }
                                 });
@@ -767,18 +796,21 @@
                 return () => clearInterval(interval);
             }, [gdStarted, gdEnded]);
 
+            // Add effect to set video when stream is available
+            useEffect(() => {
+                if (myStream && myVideoRef.current) {
+                    myVideoRef.current.srcObject = myStream;
+                    myVideoRef.current.muted = true;
+                    myVideoRef.current.play().catch(e => console.log('Play error:', e));
+                }
+            }, [myStream]);
+
             useEffect(() => {
                 return () => {
                     if (peerRef.current) peerRef.current.destroy();
                     if (myStream) myStream.getTracks().forEach(track => track.stop());
                 };
-            }, []);
-
-            const formatTime = (seconds) => {
-                const mins = Math.floor(seconds / 60);
-                const secs = seconds % 60;
-                return `${mins}:${secs.toString().padStart(2, '0')}`;
-            };
+            }, [myStream]);
 
             // MODE SELECTION SCREEN
             if (!mode) {
