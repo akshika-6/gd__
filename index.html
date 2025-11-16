@@ -132,6 +132,12 @@
             const audioMonitoringRef = useRef({});
             const participantAudioLevelsRef = useRef({});
 
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return `${mins}:${secs.toString().padStart(2, '0')}`;
+            };
+
             const startAsHost = async () => {
                 const hostName = prompt("Enter your name (Host):");
                 if (!hostName || !hostName.trim()) return;
@@ -141,19 +147,37 @@
                 
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { width: 640, height: 480 }, 
-                        audio: true 
+                        video: { 
+                            width: { ideal: 640 }, 
+                            height: { ideal: 480 },
+                            facingMode: 'user'
+                        }, 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        }
                     });
                     
-                    console.log('Host stream acquired');
+                    console.log('Host stream acquired:', stream);
+                    console.log('Video tracks:', stream.getVideoTracks());
+                    console.log('Audio tracks:', stream.getAudioTracks());
+                    
                     setMyStream(stream);
                     
-                    // Set video immediately
-                    if (myVideoRef.current) {
-                        myVideoRef.current.srcObject = stream;
-                        myVideoRef.current.muted = true;
-                        myVideoRef.current.play().catch(e => console.log('Play error:', e));
-                    }
+                    // Set video immediately and forcefully
+                    setTimeout(() => {
+                        if (myVideoRef.current && stream) {
+                            console.log('Setting host video ref');
+                            myVideoRef.current.srcObject = stream;
+                            myVideoRef.current.muted = true;
+                            myVideoRef.current.volume = 0;
+                            myVideoRef.current.autoplay = true;
+                            myVideoRef.current.playsInline = true;
+                            myVideoRef.current.play().then(() => {
+                                console.log('Host video playing successfully');
+                            }).catch(e => console.error('Host video play error:', e));
+                        }
+                    }, 100);
                     
                     setConnectionStatus('Creating room...');
                     
@@ -176,6 +200,18 @@
                         setPeerReady(true);
                         setMode('host');
                         setConnectionStatus('✅ Room ready! Share your Peer ID.');
+                        
+                        setParticipants(prev => [{
+                            id: 'host',
+                            peerId: id,
+                            name: hostName,
+                            stream: stream,
+                            speaking: false,
+                            speakingTime: 0,
+                            contributions: 0,
+                            audioLevel: 0,
+                            isHost: true
+                        }, ...prev]);
                     });
 
                     peer.on('connection', (conn) => {
@@ -215,11 +251,17 @@
                             setTimeout(() => {
                                 const videoEl = videoRefs.current[call.peer];
                                 if (videoEl && remoteStream) {
+                                    console.log('Setting video for:', call.peer);
                                     videoEl.srcObject = remoteStream;
+                                    videoEl.muted = false;
                                     videoEl.play().catch(e => console.log('Play error:', e));
                                 }
                                 setupAudioAnalysis(call.peer, remoteStream);
-                            }, 200);
+                            }, 500);
+                        });
+                        
+                        call.on('error', (err) => {
+                            console.error('Call error:', err);
                         });
                     });
 
@@ -244,19 +286,37 @@
                 
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { width: 640, height: 480 }, 
-                        audio: true 
+                        video: { 
+                            width: { ideal: 640 }, 
+                            height: { ideal: 480 },
+                            facingMode: 'user'
+                        }, 
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        }
                     });
                     
-                    console.log('Participant stream acquired');
+                    console.log('Participant stream acquired:', stream);
+                    console.log('Video tracks:', stream.getVideoTracks());
+                    console.log('Audio tracks:', stream.getAudioTracks());
+                    
                     setMyStream(stream);
                     
-                    // Set video immediately
-                    if (myVideoRef.current) {
-                        myVideoRef.current.srcObject = stream;
-                        myVideoRef.current.muted = true;
-                        myVideoRef.current.play().catch(e => console.log('Play error:', e));
-                    }
+                    // Set video immediately and forcefully
+                    setTimeout(() => {
+                        if (myVideoRef.current && stream) {
+                            console.log('Setting participant video ref');
+                            myVideoRef.current.srcObject = stream;
+                            myVideoRef.current.muted = true;
+                            myVideoRef.current.volume = 0;
+                            myVideoRef.current.autoplay = true;
+                            myVideoRef.current.playsInline = true;
+                            myVideoRef.current.play().then(() => {
+                                console.log('Participant video playing successfully');
+                            }).catch(e => console.error('Participant video play error:', e));
+                        }
+                    }, 100);
 
                     setConnectionStatus('Connecting to host...');
                     
@@ -297,47 +357,58 @@
                                         peerId: myId
                                     });
                                     
-                                    const call = peer.call(hostId, stream);
-                                    callsRef.current['host'] = call;
-                                    
-                                    // Receive host's stream
-                                    call.on('stream', (hostStream) => {
-                                        console.log('Received host stream');
-                                        setAllParticipants(prev => {
-                                            const hostExists = prev.find(p => p.peerId === hostId);
-                                            if (hostExists) {
-                                                return prev.map(p => 
-                                                    p.peerId === hostId ? {...p, stream: hostStream} : p
-                                                );
-                                            } else {
-                                                return [{
-                                                    peerId: hostId,
-                                                    name: 'Host',
-                                                    stream: hostStream
-                                                }, ...prev];
-                                            }
+                                    setTimeout(() => {
+                                        const call = peer.call(hostId, stream);
+                                        callsRef.current['host'] = call;
+                                        
+                                        call.on('stream', (hostStream) => {
+                                            console.log('Received host stream');
+                                            setAllParticipants(prev => {
+                                                const hostExists = prev.find(p => p.peerId === hostId);
+                                                if (hostExists) {
+                                                    return prev.map(p => 
+                                                        p.peerId === hostId ? {...p, stream: hostStream} : p
+                                                    );
+                                                } else {
+                                                    return [{
+                                                        peerId: hostId,
+                                                        name: 'Host',
+                                                        stream: hostStream
+                                                    }, ...prev];
+                                                }
+                                            });
+                                            
+                                            setTimeout(() => {
+                                                const videoEl = videoRefs.current[hostId];
+                                                if (videoEl) {
+                                                    console.log('Setting host video element');
+                                                    videoEl.srcObject = hostStream;
+                                                    videoEl.muted = false;
+                                                    videoEl.play().catch(e => console.log('Host video play error:', e));
+                                                }
+                                            }, 200);
                                         });
-                                    });
+                                        
+                                        call.on('error', (err) => {
+                                            console.error('Call error:', err);
+                                        });
+                                    }, 1000);
                                     
-                                    // Setup audio monitoring to send to host
                                     setupMyAudioMonitoring(stream, conn);
                                 });
 
                                 conn.on('data', (data) => {
                                     handleDataFromHost(data);
                                     
-                                    // Update participants list with proper names
                                     if (data.type === 'participants-list') {
                                         console.log('Received participants list:', data.participants);
                                         setAllParticipants(prev => {
-                                            // Add host to the list first
                                             const hostEntry = {
                                                 peerId: joinCode.trim(),
                                                 name: 'Host',
-                                                stream: callsRef.current['host']?.remoteStream || null
+                                                stream: prev.find(p => p.peerId === joinCode.trim())?.stream || null
                                             };
                                             
-                                            // Then merge other participants
                                             const others = data.participants.map(p => {
                                                 const existing = prev.find(ep => ep.peerId === p.peerId);
                                                 return {
@@ -367,11 +438,11 @@
                     peer.on('call', (call) => {
                         console.log('Receiving call from:', call.peer);
                         call.answer(stream);
+                        callsRef.current[call.peer] = call;
                         
                         call.on('stream', (remoteStream) => {
                             console.log('Received stream from peer:', call.peer);
                             
-                            // Store other participants' streams
                             setAllParticipants(prev => {
                                 const exists = prev.find(p => p.peerId === call.peer);
                                 if (exists) {
@@ -379,17 +450,26 @@
                                         p.peerId === call.peer ? {...p, stream: remoteStream} : p
                                     );
                                 }
-                                return prev;
+                                return [...prev, {
+                                    peerId: call.peer,
+                                    name: 'Participant',
+                                    stream: remoteStream
+                                }];
                             });
                             
-                            // Display video if element exists
                             setTimeout(() => {
                                 const videoEl = videoRefs.current[call.peer];
                                 if (videoEl && remoteStream) {
+                                    console.log('Setting video for peer:', call.peer);
                                     videoEl.srcObject = remoteStream;
+                                    videoEl.muted = false;
                                     videoEl.play().catch(e => console.log('Play error:', e));
                                 }
-                            }, 200);
+                            }, 500);
+                        });
+                        
+                        call.on('error', (err) => {
+                            console.error('Participant call error:', err);
                         });
                     });
 
@@ -439,7 +519,6 @@
                         sendAudioLevel();
                     }
                     
-                    // Store for starting later
                     window.participantAudioMonitor = { analyzer, sendAudioLevel };
                     
                 } catch (err) {
@@ -466,9 +545,8 @@
                             isHost: false
                         }];
                         
-                        // Broadcast updated participant list
                         setTimeout(() => {
-                            const allPeers = newParticipants.map(p => ({
+                            const allPeers = newParticipants.filter(p => !p.isHost).map(p => ({
                                 peerId: p.peerId,
                                 name: p.name
                             }));
@@ -491,16 +569,13 @@
                     setGdStarted(true);
                     setTurnOrder(data.turnOrder || []);
                     
-                    // Find my turn number
                     const myIndex = data.turnOrder.findIndex(t => t.id === myPeerIdRef.current);
                     setMyTurnNumber(myIndex + 1);
                     
-                    // Set current speaker
                     if (data.turnOrder[0]) {
                         setCurrentSpeakerName(data.turnOrder[0].name);
                     }
                     
-                    // Start audio monitoring
                     if (window.participantAudioMonitor) {
                         window.participantAudioMonitor.sendAudioLevel();
                     }
@@ -509,9 +584,11 @@
                     setGdStarted(false);
                     setGdEnded(true);
                     
-                    // Receive ALL participants' analysis including mine
                     if (data.allAnalysis) {
-                        setAnalysis(data.allAnalysis);
+                        const myAnalysis = data.allAnalysis.participants.find(p => p.peerId === myPeerIdRef.current);
+                        if (myAnalysis) {
+                            setAnalysis(myAnalysis);
+                        }
                     }
                     
                 } else if (data.type === 'turn-change') {
@@ -602,7 +679,7 @@
                 
                 const newTurnOrder = [
                     { id: myPeerIdRef.current, name: participantName, isHost: true },
-                    ...participants.map(p => ({ id: p.peerId, name: p.name, isHost: false }))
+                    ...participants.filter(p => !p.isHost).map(p => ({ id: p.peerId, name: p.name, isHost: false }))
                 ];
                 
                 setTurnOrder(newTurnOrder);
@@ -671,17 +748,15 @@
                     try { ctx.close(); } catch (err) {}
                 });
                 
-                // Generate analysis for all participants
                 const analysisResults = runMLAnalysis();
                 
-                // Send COMPLETE analysis to ALL participants (so they can see everyone's scores)
                 participants.forEach(p => {
                     const conn = connectionsRef.current[p.peerId];
                     
                     if (conn && conn.open) {
                         conn.send({
                             type: 'gd-end',
-                            allAnalysis: analysisResults // Send complete analysis
+                            allAnalysis: analysisResults
                         });
                     }
                 });
@@ -690,16 +765,14 @@
             };
 
             const runMLAnalysis = () => {
-                const results = participants.map(participant => {
+                const results = participants.filter(p => !p.isHost).map(participant => {
                     const speakingPercentage = totalTime > 0 ? (participant.speakingTime / totalTime) * 100 : 0;
                     const contributionsPerMinute = totalTime > 0 ? (participant.contributions / (totalTime / 60)) : 0;
                     
-                    // Individual scoring based on actual performance
                     const participationScore = Math.min(100, speakingPercentage * 2);
                     const engagementScore = Math.min(100, contributionsPerMinute * 20);
-                    const balanceScore = Math.min(100, 100 - Math.abs(speakingPercentage - (100 / participants.length)) * 2);
+                    const balanceScore = Math.min(100, 100 - Math.abs(speakingPercentage - (100 / participants.filter(p => !p.isHost).length)) * 2);
                     
-                    // Add randomness to make scores unique
                     const randomFactor = (Math.random() * 10) - 5;
                     const overallScore = Math.max(0, Math.min(100, 
                         (participationScore * 0.35 + engagementScore * 0.25 + balanceScore * 0.20 + 75 * 0.20) + randomFactor
@@ -724,7 +797,7 @@
                     }
                     
                     if (balanceScore < 40) {
-                        if (speakingPercentage > (100 / participants.length)) {
+                        if (speakingPercentage > (100 / participants.filter(p => !p.isHost).length)) {
                             feedback.push('⚖️ Dominated discussion. Allow others more time.');
                         } else {
                             feedback.push('⚖️ Too quiet. Speak up more confidently.');
@@ -796,14 +869,63 @@
                 return () => clearInterval(interval);
             }, [gdStarted, gdEnded]);
 
-            // Add effect to set video when stream is available
             useEffect(() => {
                 if (myStream && myVideoRef.current) {
-                    myVideoRef.current.srcObject = myStream;
-                    myVideoRef.current.muted = true;
-                    myVideoRef.current.play().catch(e => console.log('Play error:', e));
+                    console.log('useEffect: Setting my video stream');
+                    const videoEl = myVideoRef.current;
+                    videoEl.srcObject = myStream;
+                    videoEl.muted = true;
+                    videoEl.volume = 0;
+                    videoEl.autoplay = true;
+                    videoEl.playsInline = true;
+                    
+                    // Force play
+                    const playPromise = videoEl.play();
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => console.log('My video playing from useEffect'))
+                            .catch(e => console.error('My video play error from useEffect:', e));
+                    }
                 }
             }, [myStream]);
+
+            useEffect(() => {
+                if (mode === 'host') {
+                    participants.forEach(p => {
+                        if (p.stream && videoRefs.current[p.peerId]) {
+                            const videoEl = videoRefs.current[p.peerId];
+                            if (videoEl.srcObject !== p.stream) {
+                                console.log('Updating video for participant:', p.name);
+                                videoEl.srcObject = p.stream;
+                                videoEl.muted = false;
+                                videoEl.autoplay = true;
+                                videoEl.playsInline = true;
+                                const playPromise = videoEl.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.catch(e => console.log('Video play error:', e));
+                                }
+                            }
+                        }
+                    });
+                } else if (mode === 'participant') {
+                    allParticipants.forEach(p => {
+                        if (p.stream && videoRefs.current[p.peerId]) {
+                            const videoEl = videoRefs.current[p.peerId];
+                            if (videoEl.srcObject !== p.stream) {
+                                console.log('Updating video for:', p.name);
+                                videoEl.srcObject = p.stream;
+                                videoEl.muted = false;
+                                videoEl.autoplay = true;
+                                videoEl.playsInline = true;
+                                const playPromise = videoEl.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.catch(e => console.log('Video play error:', e));
+                                }
+                            }
+                        }
+                    });
+                }
+            }, [participants, allParticipants, mode]);
 
             useEffect(() => {
                 return () => {
@@ -812,7 +934,6 @@
                 };
             }, [myStream]);
 
-            // MODE SELECTION SCREEN
             if (!mode) {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
@@ -896,7 +1017,6 @@
                 );
             }
 
-            // PARTICIPANT VIEW
             if (mode === 'participant') {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 p-4">
@@ -918,7 +1038,6 @@
 
                             {!gdEnded ? (
                                 <>
-                                    {/* Current Speaker Info */}
                                     {gdStarted && currentSpeakerName && (
                                         <div className="bg-gradient-to-r from-red-500 to-orange-500 rounded-xl shadow-lg p-6 text-white mb-6 text-center">
                                             <h2 className="text-2xl font-bold mb-2">🔴 Currently Speaking</h2>
@@ -929,7 +1048,6 @@
                                         </div>
                                     )}
 
-                                    {/* My Video */}
                                     <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                                         <h3 className="text-xl font-bold text-gray-800 mb-3">📹 Your Video</h3>
                                         <video
@@ -937,12 +1055,16 @@
                                             autoPlay
                                             playsInline
                                             muted
+                                            controls={false}
                                             className="w-full rounded-lg bg-gray-900"
-                                            style={{ maxHeight: '300px', objectFit: 'cover' }}
+                                            style={{ maxHeight: '300px', objectFit: 'cover', transform: 'scaleX(-1)' }}
+                                            onLoadedMetadata={(e) => {
+                                                console.log('Participant video metadata loaded');
+                                                e.target.play().catch(err => console.error('Play failed:', err));
+                                            }}
                                         />
                                     </div>
 
-                                    {/* All Participants */}
                                     {allParticipants.length > 0 && (
                                         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                                             <h3 className="text-xl font-bold text-gray-800 mb-4">
@@ -956,7 +1078,18 @@
                                                             {p.name === currentSpeakerName && gdStarted && ' 🔴'}
                                                         </h4>
                                                         <video
-                                                            ref={el => videoRefs.current[p.peerId] = el}
+                                                            key={`participant-video-${p.peerId}`}
+                                                            ref={el => {
+                                                                if (el) {
+                                                                    videoRefs.current[p.peerId] = el;
+                                                                    if (p.stream && el.srcObject !== p.stream) {
+                                                                        console.log('Setting stream for participant:', p.name);
+                                                                        el.srcObject = p.stream;
+                                                                        el.muted = false;
+                                                                        el.play().catch(e => console.log('Play error:', e));
+                                                                    }
+                                                                }
+                                                            }}
                                                             autoPlay
                                                             playsInline
                                                             className="w-full h-32 bg-gray-900 rounded object-cover"
@@ -967,7 +1100,6 @@
                                         </div>
                                     )}
 
-                                    {/* Status */}
                                     <div className="bg-white rounded-xl shadow-lg p-6">
                                         {connected ? (
                                             <div className="text-center space-y-3">
@@ -993,7 +1125,6 @@
                                     </div>
                                 </>
                             ) : (
-                                // Show participant's individual feedback
                                 analysis && (
                                     <div className="bg-white rounded-xl shadow-lg p-6">
                                         <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">🎯 Your Performance</h2>
@@ -1057,7 +1188,6 @@
                 );
             }
 
-            // HOST VIEW
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
                     <div className="max-w-7xl mx-auto">
@@ -1088,7 +1218,7 @@
 
                                 <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
                                     <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                                        👥 All Participants ({participants.length + 1})
+                                        👥 All Participants ({participants.length})
                                     </h2>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1101,7 +1231,13 @@
                                                 autoPlay
                                                 playsInline
                                                 muted
+                                                controls={false}
                                                 className="w-full h-40 bg-gray-900 rounded-lg mb-3 object-cover"
+                                                style={{ transform: 'scaleX(-1)' }}
+                                                onLoadedMetadata={(e) => {
+                                                    console.log('Host video metadata loaded');
+                                                    e.target.play().catch(err => console.error('Play failed:', err));
+                                                }}
                                             />
                                             
                                             {gdStarted && (
@@ -1119,7 +1255,7 @@
                                             )}
                                         </div>
 
-                                        {participants.map((p, idx) => (
+                                        {participants.filter(p => !p.isHost).map((p, idx) => (
                                             <div 
                                                 key={p.peerId} 
                                                 className={`border-4 rounded-lg p-4 ${
@@ -1137,7 +1273,18 @@
                                                     {p.name}
                                                 </h3>
                                                 <video
-                                                    ref={el => videoRefs.current[p.peerId] = el}
+                                                    key={`video-${p.peerId}`}
+                                                    ref={el => {
+                                                        if (el) {
+                                                            videoRefs.current[p.peerId] = el;
+                                                            if (p.stream && el.srcObject !== p.stream) {
+                                                                console.log('Setting stream for:', p.name);
+                                                                el.srcObject = p.stream;
+                                                                el.muted = false;
+                                                                el.play().catch(e => console.log('Play error:', e));
+                                                            }
+                                                        }
+                                                    }}
                                                     autoPlay
                                                     playsInline
                                                     className="w-full h-40 bg-gray-900 rounded-lg mb-3 object-cover"
@@ -1177,7 +1324,6 @@
                                             </h3>
                                             {gdStarted && (
                                                 <div>
-                                                    <div className="text-lg">Duration: {formatTime(totalTime)}</div>
                                                     {turnOrder.length > 0 && (
                                                         <div className="text-lg font-semibold">
                                                             Current Speaker: <span className="text-yellow-300">{turnOrder[currentTurnIndex]?.name}</span>
@@ -1190,7 +1336,7 @@
                                             {!gdStarted ? (
                                                 <button
                                                     onClick={startGD}
-                                                    disabled={participants.length === 0}
+                                                    disabled={participants.filter(p => !p.isHost).length === 0}
                                                     className="px-8 py-4 bg-white text-green-600 rounded-xl font-bold text-lg hover:bg-gray-100 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all transform hover:scale-105"
                                                 >
                                                     🎬 Start GD
