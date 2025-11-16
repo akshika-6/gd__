@@ -306,6 +306,21 @@
 
                                 conn.on('data', (data) => {
                                     handleDataFromHost(data);
+                                    
+                                    // Update participants list with proper names
+                                    if (data.type === 'participants-list') {
+                                        setAllParticipants(prev => {
+                                            // Merge with existing streams
+                                            return data.participants.map(p => {
+                                                const existing = prev.find(ep => ep.peerId === p.peerId);
+                                                return {
+                                                    peerId: p.peerId,
+                                                    name: p.name,
+                                                    stream: existing ? existing.stream : null
+                                                };
+                                            });
+                                        });
+                                    }
                                 });
 
                                 conn.on('error', (err) => {
@@ -465,8 +480,9 @@
                     setGdStarted(false);
                     setGdEnded(true);
                     
-                    if (data.myAnalysis) {
-                        setAnalysis(data.myAnalysis);
+                    // Receive ALL participants' analysis including mine
+                    if (data.allAnalysis) {
+                        setAnalysis(data.allAnalysis);
                     }
                     
                 } else if (data.type === 'turn-change') {
@@ -626,20 +642,17 @@
                     try { ctx.close(); } catch (err) {}
                 });
                 
-                // Generate analysis for each participant individually
+                // Generate analysis for all participants
                 const analysisResults = runMLAnalysis();
                 
-                // Send individual analysis to each participant
+                // Send COMPLETE analysis to ALL participants (so they can see everyone's scores)
                 participants.forEach(p => {
                     const conn = connectionsRef.current[p.peerId];
-                    const participantAnalysis = analysisResults.participants.find(
-                        pa => pa.peerId === p.peerId
-                    );
                     
-                    if (conn && conn.open && participantAnalysis) {
+                    if (conn && conn.open) {
                         conn.send({
                             type: 'gd-end',
-                            myAnalysis: participantAnalysis
+                            allAnalysis: analysisResults // Send complete analysis
                         });
                     }
                 });
