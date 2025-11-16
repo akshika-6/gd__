@@ -146,38 +146,46 @@
                 setParticipantName(hostName);
                 
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            width: { ideal: 640 }, 
-                            height: { ideal: 480 },
-                            facingMode: 'user'
-                        }, 
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true
-                        }
-                    });
+                    // First try with ideal constraints
+                    let stream;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                width: { ideal: 640 }, 
+                                height: { ideal: 480 },
+                                facingMode: 'user'
+                            }, 
+                            audio: {
+                                echoCancellation: true,
+                                noiseSuppression: true
+                            }
+                        });
+                    } catch (err) {
+                        // Fallback to basic constraints
+                        console.log('Trying fallback constraints');
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: true, 
+                            audio: true 
+                        });
+                    }
                     
-                    console.log('Host stream acquired:', stream);
-                    console.log('Video tracks:', stream.getVideoTracks());
-                    console.log('Audio tracks:', stream.getAudioTracks());
+                    console.log('✅ Host stream acquired:', stream);
+                    console.log('Video tracks:', stream.getVideoTracks().map(t => ({
+                        id: t.id,
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        readyState: t.readyState
+                    })));
+                    console.log('Audio tracks:', stream.getAudioTracks().map(t => ({
+                        id: t.id,
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        readyState: t.readyState
+                    })));
                     
                     setMyStream(stream);
-                    
-                    // Set video immediately and forcefully
-                    setTimeout(() => {
-                        if (myVideoRef.current && stream) {
-                            console.log('Setting host video ref');
-                            myVideoRef.current.srcObject = stream;
-                            myVideoRef.current.muted = true;
-                            myVideoRef.current.volume = 0;
-                            myVideoRef.current.autoplay = true;
-                            myVideoRef.current.playsInline = true;
-                            myVideoRef.current.play().then(() => {
-                                console.log('Host video playing successfully');
-                            }).catch(e => console.error('Host video play error:', e));
-                        }
-                    }, 100);
                     
                     setConnectionStatus('Creating room...');
                     
@@ -200,6 +208,22 @@
                         setPeerReady(true);
                         setMode('host');
                         setConnectionStatus('✅ Room ready! Share your Peer ID.');
+                        
+                        // CRITICAL: Set video IMMEDIATELY after mode change
+                        setTimeout(() => {
+                            const videoEl = myVideoRef.current;
+                            if (videoEl && stream) {
+                                console.log('🎥 FORCING video srcObject in peer.on(open)');
+                                videoEl.srcObject = stream;
+                                videoEl.muted = true;
+                                videoEl.volume = 0;
+                                videoEl.play()
+                                    .then(() => console.log('✅ Video playing from peer.on(open)'))
+                                    .catch(e => console.error('❌ Play error:', e));
+                            } else {
+                                console.error('❌ Video ref not available yet');
+                            }
+                        }, 500);
                         
                         setParticipants(prev => [{
                             id: 'host',
@@ -285,38 +309,46 @@
                 setConnectionStatus('Getting camera access...');
                 
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            width: { ideal: 640 }, 
-                            height: { ideal: 480 },
-                            facingMode: 'user'
-                        }, 
-                        audio: {
-                            echoCancellation: true,
-                            noiseSuppression: true
-                        }
-                    });
+                    // First try with ideal constraints
+                    let stream;
+                    try {
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: { 
+                                width: { ideal: 640 }, 
+                                height: { ideal: 480 },
+                                facingMode: 'user'
+                            }, 
+                            audio: {
+                                echoCancellation: true,
+                                noiseSuppression: true
+                            }
+                        });
+                    } catch (err) {
+                        // Fallback to basic constraints
+                        console.log('Trying fallback constraints');
+                        stream = await navigator.mediaDevices.getUserMedia({ 
+                            video: true, 
+                            audio: true 
+                        });
+                    }
                     
-                    console.log('Participant stream acquired:', stream);
-                    console.log('Video tracks:', stream.getVideoTracks());
-                    console.log('Audio tracks:', stream.getAudioTracks());
+                    console.log('✅ Participant stream acquired:', stream);
+                    console.log('Video tracks:', stream.getVideoTracks().map(t => ({
+                        id: t.id,
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        readyState: t.readyState
+                    })));
+                    console.log('Audio tracks:', stream.getAudioTracks().map(t => ({
+                        id: t.id,
+                        label: t.label,
+                        enabled: t.enabled,
+                        muted: t.muted,
+                        readyState: t.readyState
+                    })));
                     
                     setMyStream(stream);
-                    
-                    // Set video immediately and forcefully
-                    setTimeout(() => {
-                        if (myVideoRef.current && stream) {
-                            console.log('Setting participant video ref');
-                            myVideoRef.current.srcObject = stream;
-                            myVideoRef.current.muted = true;
-                            myVideoRef.current.volume = 0;
-                            myVideoRef.current.autoplay = true;
-                            myVideoRef.current.playsInline = true;
-                            myVideoRef.current.play().then(() => {
-                                console.log('Participant video playing successfully');
-                            }).catch(e => console.error('Participant video play error:', e));
-                        }
-                    }, 100);
 
                     setConnectionStatus('Connecting to host...');
                     
@@ -350,6 +382,20 @@
                                     setMode('participant');
                                     setRoomCode(joinCode);
                                     setConnected(true);
+                                    
+                                    // CRITICAL: Set video IMMEDIATELY after mode change
+                                    setTimeout(() => {
+                                        const videoEl = myVideoRef.current;
+                                        if (videoEl && stream) {
+                                            console.log('🎥 FORCING participant video srcObject');
+                                            videoEl.srcObject = stream;
+                                            videoEl.muted = true;
+                                            videoEl.volume = 0;
+                                            videoEl.play()
+                                                .then(() => console.log('✅ Participant video playing'))
+                                                .catch(e => console.error('❌ Play error:', e));
+                                        }
+                                    }, 500);
                                     
                                     conn.send({
                                         type: 'join',
@@ -870,24 +916,47 @@
             }, [gdStarted, gdEnded]);
 
             useEffect(() => {
-                if (myStream && myVideoRef.current) {
-                    console.log('useEffect: Setting my video stream');
-                    const videoEl = myVideoRef.current;
-                    videoEl.srcObject = myStream;
-                    videoEl.muted = true;
-                    videoEl.volume = 0;
-                    videoEl.autoplay = true;
-                    videoEl.playsInline = true;
+                if (myStream && myVideoRef.current && mode) {
+                    console.log('🔄 useEffect: Attempting to set video stream');
+                    console.log('Stream:', myStream);
+                    console.log('Video ref exists:', !!myVideoRef.current);
+                    console.log('Mode:', mode);
                     
-                    // Force play
-                    const playPromise = videoEl.play();
-                    if (playPromise !== undefined) {
-                        playPromise
-                            .then(() => console.log('My video playing from useEffect'))
-                            .catch(e => console.error('My video play error from useEffect:', e));
+                    const videoEl = myVideoRef.current;
+                    
+                    // Only set if not already set or if different
+                    if (!videoEl.srcObject || videoEl.srcObject !== myStream) {
+                        console.log('⚡ Setting srcObject in useEffect');
+                        videoEl.srcObject = myStream;
+                        videoEl.muted = true;
+                        videoEl.volume = 0;
+                        
+                        // Force play multiple times if needed
+                        const tryPlay = () => {
+                            const playPromise = videoEl.play();
+                            if (playPromise !== undefined) {
+                                playPromise
+                                    .then(() => {
+                                        console.log('✅ My video playing from useEffect');
+                                        console.log('Video dimensions:', videoEl.videoWidth, 'x', videoEl.videoHeight);
+                                    })
+                                    .catch(e => {
+                                        console.error('❌ My video play error from useEffect:', e);
+                                        // Retry after delay
+                                        setTimeout(() => {
+                                            console.log('🔄 Retrying play...');
+                                            videoEl.play().catch(err => console.error('Retry failed:', err));
+                                        }, 500);
+                                    });
+                            }
+                        };
+                        
+                        tryPlay();
+                    } else {
+                        console.log('✓ Video srcObject already set correctly');
                     }
                 }
-            }, [myStream]);
+            }, [myStream, mode]);
 
             useEffect(() => {
                 if (mode === 'host') {
@@ -1049,20 +1118,47 @@
                                     )}
 
                                     <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-                                        <h3 className="text-xl font-bold text-gray-800 mb-3">📹 Your Video</h3>
+                                        <h3 className="text-xl font-bold text-gray-800 mb-3">
+                                            📹 Your Video
+                                            {myStream && (
+                                                <span className="ml-2 text-xs text-green-600">
+                                                    (Stream: {myStream.getVideoTracks()[0]?.readyState || 'no video'})
+                                                </span>
+                                            )}
+                                        </h3>
                                         <video
                                             ref={myVideoRef}
                                             autoPlay
                                             playsInline
                                             muted
                                             controls={false}
+                                            width="640"
+                                            height="480"
                                             className="w-full rounded-lg bg-gray-900"
-                                            style={{ maxHeight: '300px', objectFit: 'cover', transform: 'scaleX(-1)' }}
+                                            style={{ maxHeight: '300px', objectFit: 'cover', transform: 'scaleX(-1)', minHeight: '200px' }}
                                             onLoadedMetadata={(e) => {
                                                 console.log('Participant video metadata loaded');
+                                                console.log('Video dimensions:', e.target.videoWidth, 'x', e.target.videoHeight);
+                                                e.target.play().then(() => {
+                                                    console.log('✅ Playing after metadata');
+                                                }).catch(err => console.error('Play failed:', err));
+                                            }}
+                                            onLoadedData={(e) => {
+                                                console.log('Participant video data loaded');
+                                            }}
+                                            onCanPlay={(e) => {
+                                                console.log('Participant video can play');
                                                 e.target.play().catch(err => console.error('Play failed:', err));
                                             }}
-                                        />
+                                            onPlaying={(e) => {
+                                                console.log('✅ Participant video IS PLAYING NOW');
+                                            }}
+                                            onError={(e) => {
+                                                console.error('Participant video error:', e.target.error);
+                                            }}
+                                        >
+                                            Your browser does not support video
+                                        </video>
                                     </div>
 
                                     {allParticipants.length > 0 && (
@@ -1225,6 +1321,29 @@
                                         <div key="host" className="border-4 border-blue-500 rounded-lg p-4 bg-blue-50">
                                             <h3 className="font-bold text-lg text-gray-800 mb-2 text-blue-600">
                                                 🎯 HOST: {participantName}
+                                                {myStream && (
+                                                    <span className="ml-2 text-xs text-green-600">
+                                                        ({myStream.getVideoTracks()[0]?.readyState || 'no video'})
+                                                    </span>
+                                                )}
+                                                {myStream && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const video = myVideoRef.current;
+                                                            console.log('🔍 Debug Info:');
+                                                            console.log('Video element:', video);
+                                                            console.log('srcObject:', video?.srcObject);
+                                                            console.log('readyState:', video?.readyState);
+                                                            console.log('paused:', video?.paused);
+                                                            console.log('videoWidth:', video?.videoWidth);
+                                                            console.log('videoHeight:', video?.videoHeight);
+                                                            video?.play().then(() => alert('Playing!')).catch(e => alert('Error: ' + e.message));
+                                                        }}
+                                                        className="ml-2 text-xs bg-blue-500 text-white px-2 py-1 rounded"
+                                                    >
+                                                        Test
+                                                    </button>
+                                                )}
                                             </h3>
                                             <video
                                                 ref={myVideoRef}
@@ -1232,13 +1351,33 @@
                                                 playsInline
                                                 muted
                                                 controls={false}
+                                                width="640"
+                                                height="480"
                                                 className="w-full h-40 bg-gray-900 rounded-lg mb-3 object-cover"
-                                                style={{ transform: 'scaleX(-1)' }}
+                                                style={{ transform: 'scaleX(-1)', minHeight: '160px' }}
                                                 onLoadedMetadata={(e) => {
                                                     console.log('Host video metadata loaded');
+                                                    console.log('Video dimensions:', e.target.videoWidth, 'x', e.target.videoHeight);
+                                                    e.target.play().then(() => {
+                                                        console.log('✅ Playing after metadata');
+                                                    }).catch(err => console.error('Play failed:', err));
+                                                }}
+                                                onLoadedData={(e) => {
+                                                    console.log('Host video data loaded');
+                                                }}
+                                                onCanPlay={(e) => {
+                                                    console.log('Host video can play');
                                                     e.target.play().catch(err => console.error('Play failed:', err));
                                                 }}
-                                            />
+                                                onPlaying={(e) => {
+                                                    console.log('✅ Host video IS PLAYING NOW');
+                                                }}
+                                                onError={(e) => {
+                                                    console.error('Host video error:', e.target.error);
+                                                }}
+                                            >
+                                                Your browser does not support video
+                                            </video>
                                             
                                             {gdStarted && (
                                                 <div className="space-y-2">
